@@ -305,25 +305,30 @@ class SwitchbotBle extends utils.Adapter {
     }
 
     async scanDevices() {
+        this.switchbot.onadvertisement = (data) => {
+            if (!Object.keys(this.switchbotDevice).includes(data.address)) {
+                (async () => {
+                    await this.createBotObjects(data);
+                    this.switchbotDevice[data.address] = data;
+                    this.switchbotDevice[data.address].on = this.getOnStateValue(data);
+                    this.log.info(`[scanDevices] device detected: ${helper.getProductName(data.serviceData.model)} (${data.address})`);
+                })().catch((error) => {
+                    this.log.error(`[scanDevices] error while creating objects: ${error}`);
+                });
+            }
+            (async () => {
+                await this.setAdvertisementData(data);
+            })().catch((error) => {
+                this.log.error(`[scanDevices] error while set state values: ${error}`);
+            });
+        };
+
+        this.switchbot.onlog = (log) => {
+            this.log.silly(log);
+        };
+
         this.switchbot.startScan().then(() => {
             this.setIsBusy(true);
-            this.switchbot.onadvertisement = (data) => {
-                if (!Object.keys(this.switchbotDevice).includes(data.address)) {
-                    (async () => {
-                        await this.createBotObjects(data);
-                        this.switchbotDevice[data.address] = data;
-                        this.switchbotDevice[data.address].on = this.getOnStateValue(data);
-                        this.log.info(`[scanDevices] device detected: ${helper.getProductName(data.serviceData.model)} (${data.address})`);
-                    })().catch((error) => {
-                        this.log.error(`[scanDevices] error while creating objects: ${error}`);
-                    });
-                }
-                (async () => {
-                    await this.setAdvertisementData(data);
-                })().catch((error) => {
-                    this.log.error(`[scanDevices] error while set state values: ${error}`);
-                });
-            };
             return this.switchbot.wait(this.scanDevicesWait);
         }).then(() => {
             this.switchbot.stopScan();
