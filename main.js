@@ -22,8 +22,13 @@ class SwitchbotBle extends utils.Adapter {
         this.on('unload', this.onUnload.bind(this));
 
         this.switchbot = new Switchbot();
+
+        let lastSwitchBotLog = '';
         this.switchbot.onlog = (log) => {
-            this.log.silly(log);
+            if (lastSwitchBotLog !== log) {
+                lastSwitchBotLog = log;
+                this.log.silly(log);
+            }
         };
 
         this.interval = 15000;
