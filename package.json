@@ -16,9 +16,9 @@
     "url": "https://github.com/mrbungle64/ioBroker.switchbot-ble"
   },
   "dependencies": {
+    "@abandonware/noble": "1.9.2-15",
     "@iobroker/adapter-core": "^2.6.0",
-    "node-switchbot": "github:patrickbs96/node-switchbot#beta",
-    "@abandonware/noble": "1.9.2-15"
+    "node-switchbot": "github:patrickbs96/node-switchbot#beta"
   },
   "engines": {
     "node": ">=12"
