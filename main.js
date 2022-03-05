@@ -2,6 +2,8 @@
 
 const utils = require('@iobroker/adapter-core');
 const Switchbot = require('node-switchbot');
+const SwitchbotDeviceWoHand = require('node-switchbot/lib/switchbot-device-wohand.js');
+const SwitchbotDeviceWoCurtain = require('node-switchbot/lib/switchbot-device-wocurtain.js');
 const helper = require('./lib/adapterHelper');
 const objects = require('./lib/adapterObjects');
 const Queue = require('./lib/adapterQueue');
@@ -20,6 +22,9 @@ class SwitchbotBle extends utils.Adapter {
         this.on('unload', this.onUnload.bind(this));
 
         this.switchbot = new Switchbot();
+        this.switchbot.onlog = (log) => {
+            this.log.silly(log);
+        };
 
         this.interval = 15000;
         this.scanDevicesWait = 3000;
@@ -185,13 +190,14 @@ class SwitchbotBle extends utils.Adapter {
 
     async botAction(cmd, macAddress, model = 'H', value = null) {
         this.setIsBusy(true);
-        let bot = null;
+        /** @type {SwitchbotDevice} */
+        let bot;
         this.switchbot.discover({
             id: macAddress,
             model: model,
             quick: true,
             duration: this.pressDevicesWait
-        }).then((device_list) => {
+        }).then((/** @type {SwitchbotDevice[]} */ device_list) => {
             bot = device_list[0];
             if (typeof bot === 'undefined') {
                 return Promise.reject('Discover deviceList is empty!');
@@ -203,29 +209,37 @@ class SwitchbotBle extends utils.Adapter {
             this.log.debug(logMsg);
             return bot.connect();
         }).then(() => {
-            switch (cmd) {
-                // SwitchBot "Bot"
-                case 'turnOn':
-                    return bot.turnOn();
-                case 'turnOff':
-                    return bot.turnOff();
-                case 'press':
-                    return bot.press();
-                case 'up':
-                    return bot.up();
-                case 'down':
-                    return bot.down();
-                // SwitchBot "Curtain"
-                case 'open':
-                    return bot.open();
-                case 'close':
-                    return bot.close();
-                case 'pause':
-                    return bot.pause();
-                case 'runToPos':
-                    return bot.runToPos(value);
-                default:
-                    throw new Error(`Unhandled control cmd '${cmd}' for ${helper.getProductName(model)} (${macAddress})`);
+            if (bot instanceof SwitchbotDeviceWoHand) {
+                switch (cmd) {
+                    // SwitchBot "Bot"
+                    case 'turnOn':
+                        return bot.turnOn();
+                    case 'turnOff':
+                        return bot.turnOff();
+                    case 'press':
+                        return bot.press();
+                    case 'up':
+                        return bot.up();
+                    case 'down':
+                        return bot.down();
+                    default:
+                        throw new Error(`Unhandled control cmd '${cmd}' for ${helper.getProductName(model)} (${macAddress})`);
+                }
+            } else if (bot instanceof SwitchbotDeviceWoCurtain) {
+                switch (cmd) {
+                    case 'open':
+                        return bot.open();
+                    case 'close':
+                        return bot.close();
+                    case 'pause':
+                        return bot.pause();
+                    case 'runToPos':
+                        return bot.runToPos(value);
+                    default:
+                        throw new Error(`Unhandled control cmd '${cmd}' for ${helper.getProductName(model)} (${macAddress})`);
+                }
+            } else {
+                throw new Error(`Unhandled control cmd '${cmd}' for ${helper.getProductName(model)} (${macAddress}), deviceType unknown!`);
             }
         }).then(() => {
             this.retries = 0;
@@ -321,10 +335,6 @@ class SwitchbotBle extends utils.Adapter {
             })().catch((error) => {
                 this.log.error(`[scanDevices] error while set state values: ${error}`);
             });
-        };
-
-        this.switchbot.onlog = (log) => {
-            this.log.silly(log);
         };
 
         this.switchbot.startScan().then(() => {
