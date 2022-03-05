@@ -308,8 +308,7 @@ class SwitchbotBle extends utils.Adapter {
                     this.botAction(cmd, macAddress, model, value);
                 }, retryMilliseconds);
             } else {
-                const logMsg = `[botAction] error while running '${cmd}' for ${helper.getProductName(model)} (${macAddress}): ${error.toString()}`;
-                this.log.warn(`${logMsg}: ${error.toString()}`);
+                this.log.warn(`[botAction] error while running '${cmd}' for ${helper.getProductName(model)} (${macAddress}): ${error.toString()}`);
                 this.log.error(`[botAction] max. retries (${this.maxRetriesDeviceAction}) reached. Giving up ...`);
                 this.retries = 0;
                 this.setIsBusy(false);
